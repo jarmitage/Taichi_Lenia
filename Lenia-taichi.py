@@ -3,8 +3,8 @@ import time
 
 from taichi.ui import canvas
 
-# ti.init(arch=ti.cpu)
-ti.init(arch=ti.cuda)
+ti.init(arch=ti.vulkan)
+# ti.init(arch=ti.cuda)
 
 
 # color map is copy from: https://forum.taichi.graphics/t/vortex-method-demo/775
@@ -73,11 +73,12 @@ class Taichi_Lenia:
         self.brush = ti.field(ti.f32, ())
         self.brush[None] = 0.03
 
-        self.kernel_beta = ti.field(ti.f32, self.kernel_rank)
-        # self.kernel_beta = ti.Vector([1/2, 1, 1/3])
+        # self.kernel_beta = ti.field(ti.f32, self.kernel_rank)
+        self.kernel_beta = ti.Vector([1/2, 1, 1/3])
         self.kernel_beta = kb
 
         self.world_old = ti.field(ti.f32, (self.res, self.res))
+        self.world_slice = ti.field(ti.f32, (self.res))
         self.world_save = ti.field(ti.f32, (self.res, self.res))
         self.world_new = ti.field(ti.f32, (self.res, self.res))
 
@@ -194,6 +195,11 @@ class Taichi_Lenia:
             if dis < self.brush[None]:
                 self.world_old[i, j] = 0.0
 
+    @ti.kernel
+    def slice_world(self, index: ti.i32):
+        for i in ti.ndrange(self.res):
+            self.world_slice[i] = self.world_old[index, i]
+
     def save_world(self):
         self.world_save.copy_from(self.world_old)
 
@@ -246,7 +252,7 @@ if __name__ == "__main__":
         for e in window.get_events(ti.ui.PRESS):
             if e.key in [ti.ui.ESCAPE]:
                 exit()
-            elif e.key == ti.ui.SPACE:
+            elif e.key == 'p':
                 lenia.paused = not lenia.paused
                 print('Pause state:{}'.format(lenia.paused))
             elif e.key == 'r':
